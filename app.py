@@ -1,5 +1,5 @@
 #imports
-import numpy
+import numpy as np
 import datetime as dt
 import sqlalchemy
 from sqlalchemy.ext.automap import automap_base
@@ -10,7 +10,7 @@ from flask import Flask, jsonify
 ######################################################################
 #Database Setup
 ######################################################################
-engine = create_engine("sqlite:///hawaii.sqlite")
+engine = create_engine("sqlite:///Resources/hawaii.sqlite")
 #reflect an existing database into a new model
 Base = automap_base()
 #rflect the tables
@@ -47,19 +47,27 @@ def precipitation():
     #create session and query precipation and date data
     session = Session(engine)
 
-    precip_data = session.query(measurement.date, measurement.prcp).all()
+    one_year = dt.date(2017, 8, 23) - dt.timedelta(days = 365)
+
+    precip_score= session.query(measurement.date, measurement.prcp) \
+                      .filter(measurement.date >= dt.datetime.strftime(one_year, "%Y-%m-%d")) \
+                      .filter(measurement.prcp.isnot(None)) \
+                      .order_by(measurement.date).all()
 
     session.close()
 
     #create dictionary from row data and append to a list
     precip = []
-    for date, prcp in precip_data:
+    for date, prcp in precip_score:
         precip_dict = {}
         precip_dict["date"] = date
         precip_dict["prcp"] = prcp
         precip.append(precip_dict)
     
     return jsonify(precip)
+
+
+
 
 
 @app.route("/api/v1.0/stations")
@@ -71,14 +79,11 @@ def stations():
 
     session.close()
 
-#create dictionary from row data and append to a list
-    stations = []
-    for row in stat_data:
-        station_dict = {}
-        station_dict["station"] = row
-        stations.append(station_dict)
+    #list of stations
+    all_stations = list(np.ravel(stat_data))
 
-    return jsonify(stations)
+
+    return jsonify(all_stations)
 
 
 @app.route("/api/v1.0/tobs")
